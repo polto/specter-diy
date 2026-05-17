@@ -3,7 +3,7 @@ from binascii import hexlify
 from io import BytesIO
 
 from app import BaseApp, AppError
-from embit import bip85
+from embit import bip85, bip39
 from gui.common import add_button, add_button_pair, align_button_pair
 from gui.decorators import on_release
 from gui.screens import Menu, NumericScreen, QRAlert, Alert, Prompt
@@ -112,8 +112,26 @@ class App(BaseApp):
                 Bip85MnemonicScreen(mnemonic=mnemonic, title=title, note=note)
             )
             if action == Bip85MnemonicScreen.QR:
+                enc = await show_screen(
+                    Menu([(1, "SeedQR (digits)"), (2, "Compact SeedQR (binary)"), (3, "Plaintext")],
+                         last=(255, None),
+                         title="Select encoding format",
+                         note="Compact QR is smaller but not human-readable\n")
+                )
+                if enc == 1:
+                    nums = [bip39.WORDLIST.index(w) for w in mnemonic.split()]
+                    qr_msg = "".join([("000"+str(n))[-4:] for n in nums])
+                    msg = qr_msg
+                elif enc == 2:
+                    qr_msg = bip39.mnemonic_to_bytes(mnemonic)
+                    msg = hexlify(qr_msg).decode()
+                elif enc == 3:
+                    qr_msg = mnemonic
+                    msg = mnemonic
+                else:
+                    return True
                 await show_screen(
-                    QRAlert(title=title, message=mnemonic, note=note)
+                    QRAlert(title=title, message=msg, qr_message=qr_msg, note=note, transcribe=True)
                 )
             elif action == Bip85MnemonicScreen.SD:
                 fname = "bip85-%s-mnemonic-%d-%d.txt" % (
