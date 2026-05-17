@@ -31,7 +31,8 @@ class BlindingKeysApp(BaseApp):
     async def menu(self, show_screen, show_all=False):
         await show_screen(QRAlert("Standard SLIP-77 blinding key",
                 self.keystore.slip77_key.wif(NETWORKS[self.network]),
-                note="Blinding private key allows your software wallet\nto track your balance."
+                note="Blinding private key allows your software wallet\nto track your balance.",
+                transcribe=True
                 ))
         return False
 

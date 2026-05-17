@@ -1,5 +1,8 @@
+import asyncio
 import lvgl as lv
+
 from .alert import Alert
+from .qr_transcribe import QRTranscribeScreen
 from ..common import add_qrcode, add_button
 from ..decorators import on_release
 
@@ -22,8 +25,18 @@ class QRAlert(Alert):
         self.qr.align(self.page, lv.ALIGN.IN_TOP_MID, 0, 20)
         self.message.align(self.qr, lv.ALIGN.OUT_BOTTOM_MID, 0, 20)
         if transcribe:
-            btn = add_button("Toggle transcribe", on_release(self.toggle_transcribe), scr=self)
+            btn = add_button("Transcribe", on_release(self._open_transcribe), scr=self)
             btn.align(self.message, lv.ALIGN.OUT_BOTTOM_MID, 0, 20)
 
-    def toggle_transcribe(self):
-        self.qr.spacing = 0 if self.qr.spacing else 3
+    def _open_transcribe(self):
+        asyncio.create_task(self._transcribe_loop())
+
+    async def _transcribe_loop(self):
+        # qr.get_text() returns the original payload (not the bcur-frame text)
+        scr = QRTranscribeScreen(self.qr.get_text())
+        lv.scr_load(scr)
+        try:
+            await scr.result()
+        finally:
+            lv.scr_load(self)
+            scr.del_async()
